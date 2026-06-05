@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}All Complaints — Smart City Complaint Assistant{% endblock %}
+
+{% block content %}
+<div class="page-body">
+  <div class="container">
+
+    <div class="page-header">
+      <div>
+        <div class="section-title">Complaint registry</div>
+        <h1>All Complaints</h1>
+        <p>{{ stats.total }} total &nbsp;·&nbsp; {{ stats.pending }} pending &nbsp;·&nbsp; {{ stats.resolved }} resolved</p>
+      </div>
+      <a href="{{ url_for('report') }}" class="btn btn-primary btn-sm">
+        <i class="ti ti-plus"></i> Report Issue
+      </a>
+    </div>
+
+    <!-- Filter Bar -->
+    <form method="GET" class="filter-bar">
+      <span class="filter-label">Filter by:</span>
+      <select name="category" class="form-select" style="max-width:200px;" onchange="this.form.submit()">
+        <option value="">All categories</option>
+        {% for cat in categories %}
+          <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+      <select name="severity" class="form-select" style="max-width:140px;" onchange="this.form.submit()">
+        <option value="">All severity</option>
+        {% for sev in ['High','Medium','Low'] %}
+          <option value="{{ sev }}" {% if selected_severity == sev %}selected{% endif %}>{{ sev }}</option>
+        {% endfor %}
+      </select>
+      <select name="status" class="form-select" style="max-width:150px;" onchange="this.form.submit()">
+        <option value="">All status</option>
+        {% for st in ['Pending','In Progress','Resolved'] %}
+          <option value="{{ st }}" {% if selected_status == st %}selected{% endif %}>{{ st }}</option>
+        {% endfor %}
+      </select>
+      {% if selected_category or selected_severity or selected_status %}
+        <a href="{{ url_for('complaints') }}" class="btn btn-outline btn-sm">Clear filters</a>
+      {% endif %}
+    </form>
+
+    <!-- Table -->
+    {% if complaints %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Category</th>
+              <th>Severity</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th>Reported</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in complaints %}
+            {% set icons = {
+              'Pothole / Road Damage':    ('ti-road',        'icon-pothole'),
+              'Garbage / Waste Overflow': ('ti-trash',       'icon-garbage'),
+              'Waterlogging / Drainage':  ('ti-droplet',     'icon-water'),
+              'Broken Streetlight':       ('ti-bulb',        'icon-streetlight'),
+              'Sewage / Open Drain':      ('ti-ripple',      'icon-sewage'),
+            } %}
+            {% set icon_data = icons.get(c.category, ('ti-alert-circle', 'icon-other')) %}
+            <tr>
+              <td style="color:var(--text-muted); font-size:12px;">#{{ c.id }}</td>
+              <td>
+                <div class="flex align-center gap-8">
+                  <div class="complaint-icon {{ icon_data[1] }}" style="width:30px;height:30px;font-size:14px;">
+                    <i class="ti {{ icon_data[0] }}"></i>
+                  </div>
+                  <span style="font-size:13px; font-weight:500;">{{ c.category }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="badge badge-{{ c.severity.lower() }}">{{ c.severity }}</span>
+              </td>
+              <td style="font-size:13px; color:var(--text-secondary);">
+                <i class="ti ti-map-pin" style="font-size:12px; color:var(--teal);"></i> {{ c.location }}
+              </td>
+              <td>
+                {% set st = c.status.lower().replace(' ','') %}
+                <span class="badge badge-{{ st }}">{{ c.status }}</span>
+              </td>
+              <td style="font-size:12px; color:var(--text-muted);">{{ c.created_at }}</td>
+              <td>
+                <a href="{{ url_for('complaint_detail', complaint_id=c.id) }}" class="btn btn-outline btn-sm">
+                  View <i class="ti ti-arrow-right"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state card">
+        <div class="empty-icon"><i class="ti ti-clipboard-x"></i></div>
+        <p>No complaints found{% if selected_category or selected_severity or selected_status %} for selected filters{% endif %}.</p>
+        <a href="{{ url_for('report') }}" class="btn btn-primary mt-16">Report an issue</a>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

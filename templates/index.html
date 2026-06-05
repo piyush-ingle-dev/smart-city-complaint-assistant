@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Smart City Complaint Assistant — Home{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">
+      <i class="ti ti-map-pin"></i> SDG 11 — Sustainable Cities &amp; Communities
+    </div>
+    <h1>Report city problems.<br><span>AI does the rest.</span></h1>
+    <p>Upload a photo of any civic issue — pothole, garbage, waterlogging, broken streetlight. Our AI identifies it, classifies it, and logs it instantly.</p>
+    <div class="hero-btns">
+      <a href="{{ url_for('report') }}" class="btn btn-primary">
+        <i class="ti ti-camera-plus"></i> Report an Issue
+      </a>
+      <a href="{{ url_for('dashboard') }}" class="btn btn-outline">
+        <i class="ti ti-chart-bar"></i> View Dashboard
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<div class="stats-row container" style="border-radius:0; border-left:none; border-right:none;">
+  <div class="stat-cell">
+    <div class="stat-num">{{ stats.total }}</div>
+    <div class="stat-label">Total complaints</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-num">{{ stats.pending }}</div>
+    <div class="stat-label">Pending</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-num">{{ stats.resolved }}</div>
+    <div class="stat-label">Resolved</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-num">6</div>
+    <div class="stat-label">Issue categories</div>
+  </div>
+</div>
+
+<!-- How It Works -->
+<div style="background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 44px 0;">
+  <div class="container">
+    <div class="section-title">How it works</div>
+    <div class="section-heading">Four steps from photo to action</div>
+    <div class="how-grid">
+      <div class="how-card">
+        <div class="how-step">1</div>
+        <div class="how-icon"><i class="ti ti-upload"></i></div>
+        <div class="how-title">Upload photo</div>
+        <div class="how-desc">Snap a photo of any urban problem and upload it to the platform.</div>
+      </div>
+      <div class="how-card">
+        <div class="how-step">2</div>
+        <div class="how-icon"><i class="ti ti-brain"></i></div>
+        <div class="how-title">AI classifies</div>
+        <div class="how-desc">GPT-4o Vision identifies the issue type and severity automatically.</div>
+      </div>
+      <div class="how-card">
+        <div class="how-step">3</div>
+        <div class="how-icon"><i class="ti ti-file-description"></i></div>
+        <div class="how-title">Auto-description</div>
+        <div class="how-desc">AI writes the complaint description for you. No typing needed.</div>
+      </div>
+      <div class="how-card">
+        <div class="how-step">4</div>
+        <div class="how-icon"><i class="ti ti-chart-bar"></i></div>
+        <div class="how-title">Dashboard tracks</div>
+        <div class="how-desc">Every complaint is logged, tracked, and shown on the live dashboard.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Complaints -->
+<div class="page-body">
+  <div class="container">
+    <div class="page-header">
+      <div>
+        <div class="section-title">Live feed</div>
+        <h1>Recent complaints</h1>
+      </div>
+      <a href="{{ url_for('complaints') }}" class="btn btn-outline btn-sm">View all <i class="ti ti-arrow-right"></i></a>
+    </div>
+
+    {% if recent %}
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        {% for c in recent %}
+          {% set icons = {
+            'Pothole / Road Damage': ('ti-road', 'icon-pothole'),
+            'Garbage / Waste Overflow': ('ti-trash', 'icon-garbage'),
+            'Waterlogging / Drainage': ('ti-droplet', 'icon-water'),
+            'Broken Streetlight': ('ti-bulb', 'icon-streetlight'),
+            'Sewage / Open Drain': ('ti-ripple', 'icon-sewage'),
+          } %}
+          {% set icon_data = icons.get(c.category, ('ti-alert-circle', 'icon-other')) %}
+          <a href="{{ url_for('complaint_detail', complaint_id=c.id) }}" style="text-decoration:none;">
+            <div class="complaint-card">
+              <div class="complaint-icon {{ icon_data[1] }}">
+                <i class="ti {{ icon_data[0] }}"></i>
+              </div>
+              <div style="flex:1;">
+                <div class="flex align-center gap-8">
+                  <span class="complaint-title">{{ c.category }}</span>
+                  <span class="badge badge-{{ c.severity.lower() }}">{{ c.severity }}</span>
+                  <span class="badge badge-{{ c.status.lower().replace(' ','')|replace('inprogress','inprogress') }}">{{ c.status }}</span>
+                </div>
+                <div class="complaint-meta"><i class="ti ti-map-pin" style="font-size:12px;"></i> {{ c.location }} &nbsp;·&nbsp; {{ c.created_at }}</div>
+                <div class="complaint-desc">{{ c.description[:140] }}{% if c.description|length > 140 %}...{% endif %}</div>
+              </div>
+              <i class="ti ti-chevron-right" style="color: var(--text-muted); font-size:16px; margin-top:4px;"></i>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state card">
+        <div class="empty-icon"><i class="ti ti-clipboard-list"></i></div>
+        <p>No complaints yet. Be the first to report a city issue.</p>
+        <a href="{{ url_for('report') }}" class="btn btn-primary mt-16">Report now</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

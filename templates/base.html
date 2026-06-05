@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Smart City Complaint Assistant{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container navbar-inner">
+      <a href="{{ url_for('index') }}" class="navbar-logo">
+        <div class="logo-dot"><i class="ti ti-building-community"></i></div>
+        Smart City Assistant
+      </a>
+      <div class="navbar-links">
+        <a href="{{ url_for('index') }}"      class="{% if request.endpoint=='index' %}active{% endif %}">Home</a>
+        <a href="{{ url_for('complaints') }}" class="{% if request.endpoint=='complaints' %}active{% endif %}">Complaints</a>
+        <a href="{{ url_for('dashboard') }}"  class="{% if request.endpoint=='dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="{{ url_for('track') }}"      class="{% if request.endpoint=='track' %}active{% endif %}">Track Status</a>
+        {% if session.get('user_id') %}
+          <a href="{{ url_for('my_complaints') }}" class="{% if request.endpoint=='my_complaints' %}active{% endif %}">My Complaints</a>
+          <!-- Notification Bell -->
+          <a href="{{ url_for('notifications') }}" style="position:relative; padding:7px 10px; border-radius:var(--radius-sm); color:var(--text-secondary);" title="Notifications">
+            <i class="ti ti-bell" style="font-size:18px;"></i>
+            {% if unread_count > 0 %}
+            <span style="position:absolute;top:2px;right:2px;width:16px;height:16px;background:var(--red);color:white;border-radius:50%;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;">{{ unread_count }}</span>
+            {% endif %}
+          </a>
+          <a href="{{ url_for('report') }}" class="btn-nav">+ Report Issue</a>
+          <div class="user-menu">
+            <div class="user-avatar" id="userAvatar" onclick="toggleDropdown()">{{ session.user_name[0].upper() }}</div>
+            <div class="user-dropdown" id="userDropdown">
+              <div class="user-name">{{ session.user_name }}</div>
+              <div class="user-email">{{ session.user_email }}</div>
+              <div class="dropdown-divider"></div>
+              <a href="{{ url_for('my_complaints') }}"><i class="ti ti-list"></i> My Complaints</a>
+              <a href="{{ url_for('signout') }}" style="color:var(--red);"><i class="ti ti-logout"></i> Sign Out</a>
+            </div>
+          </div>
+        {% else %}
+          <a href="{{ url_for('signin') }}" class="btn-outline btn btn-sm">Sign In</a>
+          <a href="{{ url_for('signup') }}" class="btn-nav">Sign Up</a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+  {% block content %}{% endblock %}
+
+  <!-- Chatbot -->
+  <div class="chat-widget">
+    <div class="chat-window" id="chatWindow">
+      <div class="chat-header"><i class="ti ti-robot"></i> City Assistant AI</div>
+      <div class="chat-messages" id="chatMessages">
+        <div class="msg msg-bot">Hi! I am your Smart City assistant. Ask me anything about reporting civic issues or checking complaint status.</div>
+      </div>
+      <div class="chat-input-row">
+        <input type="text" id="chatInput" placeholder="Ask something..." />
+        <button class="chat-send" onclick="sendChat()">Send</button>
+      </div>
+    </div>
+    <button class="chat-toggle" onclick="toggleChat()">
+      <i class="ti ti-message-chatbot" id="chatIcon"></i>
+    </button>
+  </div>
+
+  <footer class="footer">
+    <span>Smart City Complaint Assistant</span> &nbsp;·&nbsp; SDG 11: Sustainable Cities &amp; Communities &nbsp;·&nbsp; AI Capstone Project
+  </footer>
+
+  <script>
+    function toggleDropdown() {
+      const dd = document.getElementById('userDropdown');
+      if (dd) dd.classList.toggle('open');
+    }
+    // Close dropdown when clicking anywhere outside
+    document.addEventListener('click', function(e) {
+      const menu = document.getElementById('userAvatar');
+      const dd   = document.getElementById('userDropdown');
+      if (dd && menu && !menu.contains(e.target) && !dd.contains(e.target)) {
+        dd.classList.remove('open');
+      }
+    });
+    function toggleChat() {
+      const w = document.getElementById('chatWindow');
+      const icon = document.getElementById('chatIcon');
+      w.classList.toggle('open');
+      icon.className = w.classList.contains('open') ? 'ti ti-x' : 'ti ti-message-chatbot';
+    }
+    async function sendChat() {
+      const input = document.getElementById('chatInput');
+      const msg = input.value.trim();
+      if (!msg) return;
+      input.value = '';
+      const msgs = document.getElementById('chatMessages');
+      msgs.innerHTML += `<div class="msg msg-user">${msg}</div>`;
+      msgs.innerHTML += `<div class="msg msg-bot" id="typing">Typing...</div>`;
+      msgs.scrollTop = msgs.scrollHeight;
+      const res = await fetch('/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: msg}) });
+      const data = await res.json();
+      document.getElementById('typing').textContent = data.reply;
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      const inp = document.getElementById('chatInput');
+      if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+    });
+  </script>
+</body>
+</html>

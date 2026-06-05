@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Notifications — Smart City Complaint Assistant{% endblock %}
+{% block content %}
+<div class="page-body">
+  <div class="container" style="max-width:700px;">
+
+    <div class="page-header">
+      <div>
+        <div class="section-title">Your updates</div>
+        <h1>Notifications</h1>
+        <p>AI-generated status updates from municipal authorities.</p>
+      </div>
+    </div>
+
+    {% if notifications %}
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      {% for n in notifications %}
+
+      {% set color_map = {
+        'In Progress': ('var(--blue)',  'ti-tools',              'var(--blue-light)',  '#0C447C'),
+        'Resolved':    ('var(--teal)',  'ti-circle-check-filled','var(--teal-light)',  'var(--teal-deeper)'),
+        'Rejected':    ('var(--red)',   'ti-x-circle',           'var(--red-light)',   '#791F1F'),
+      } %}
+      {% set cm = color_map.get(n.status, ('var(--amber)','ti-clock','var(--amber-light)','#633806')) %}
+
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-left:4px solid {{ cm[0] }};border-radius:var(--radius-lg);padding:18px 20px;{% if not n.is_read %}box-shadow:0 2px 8px rgba(0,0,0,0.06);{% endif %}">
+        <div style="display:flex;align-items:flex-start;gap:14px;">
+
+          <!-- Icon -->
+          <div style="width:40px;height:40px;border-radius:50%;background:{{ cm[2] }};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="ti {{ cm[1] }}" style="font-size:18px;color:{{ cm[0] }};"></i>
+          </div>
+
+          <div style="flex:1;">
+            <!-- Header -->
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+              <span style="font-size:13px;font-weight:700;color:{{ cm[3] }};">{{ n.status }}</span>
+              <span class="badge badge-{{ n.severity.lower() }}">{{ n.severity }}</span>
+              <span style="font-size:11px;color:var(--text-muted);margin-left:auto;">{{ n.created_at }}</span>
+            </div>
+
+            <!-- Complaint info -->
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+              <i class="ti ti-file-description" style="font-size:11px;"></i>
+              Complaint #{{ n.complaint_id }} &nbsp;·&nbsp;
+              {{ n.category }} &nbsp;·&nbsp;
+              <i class="ti ti-map-pin" style="font-size:11px;"></i> {{ n.location }}
+            </div>
+
+            <!-- AI Message -->
+            <div style="background:{{ cm[2] }};border-radius:var(--radius-md);padding:12px 14px;">
+              <div style="font-size:11px;font-weight:600;color:{{ cm[3] }};text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;">
+                <i class="ti ti-robot" style="font-size:12px;"></i> Message from Municipal Authority
+              </div>
+              <p style="font-size:13px;color:{{ cm[3] }};margin:0;line-height:1.7;">{{ n.message }}</p>
+            </div>
+
+            <!-- View button -->
+            <div style="margin-top:10px;">
+              <a href="{{ url_for('complaint_detail', complaint_id=n.complaint_id) }}"
+                 class="btn btn-outline btn-sm">
+                View complaint <i class="ti ti-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="empty-state card">
+      <div class="empty-icon"><i class="ti ti-bell-off"></i></div>
+      <p>No notifications yet. You will receive updates here when municipal authorities act on your complaints.</p>
+      <a href="{{ url_for('report') }}" class="btn btn-primary mt-16">
+        <i class="ti ti-plus"></i> Report an issue
+      </a>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

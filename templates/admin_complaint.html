@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manage Complaint #{{ complaint.id }} — Admin</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css"/>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container navbar-inner">
+    <div class="navbar-logo">
+      <div class="logo-dot" style="background:var(--amber);"><i class="ti ti-shield-lock"></i></div>
+      Admin Panel
+    </div>
+    <div class="navbar-links">
+      <a href="{{ url_for('admin_panel') }}" class="btn btn-outline btn-sm"><i class="ti ti-arrow-left"></i> Back</a>
+      <a href="{{ url_for('logout') }}" style="font-size:13px; color:var(--text-muted);">Logout</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page-body">
+  <div class="container">
+
+    <div class="page-header">
+      <div>
+        <div class="section-title">Admin — manage complaint</div>
+        <h1>Complaint #{{ complaint.id }}</h1>
+      </div>
+      <div class="flex gap-8 align-center">
+        <span class="badge badge-{{ complaint.severity.lower() }}">{{ complaint.severity }}</span>
+        {% set st = complaint.status.lower().replace(' ','') %}
+        <span class="badge badge-{{ st if st != 'rejected' else 'high' }}">{{ complaint.status }}</span>
+      </div>
+    </div>
+
+    <!-- AI Banner -->
+    <div style="background:var(--teal-light); border:1px solid var(--teal-mid); border-radius:var(--radius-lg); padding:16px 20px; margin-bottom:24px; display:flex; gap:12px;">
+      <i class="ti ti-robot" style="color:var(--teal-dark); font-size:22px; flex-shrink:0; margin-top:2px;"></i>
+      <div>
+        <div style="font-size:13px; font-weight:600; color:var(--teal-deeper); margin-bottom:4px;">AI Classification</div>
+        <div style="font-size:14px; color:var(--teal-dark);">{{ complaint.description }}</div>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+
+      <!-- Photo -->
+      <div>
+        <div class="detail-image">
+          {% if complaint.image_path %}
+            <img src="{{ url_for('static', filename=complaint.image_path.replace('static/','')) }}" alt="Complaint photo"/>
+          {% else %}
+            <div class="no-image"><i class="ti ti-photo-off" style="font-size:32px;"></i></div>
+          {% endif %}
+        </div>
+
+        <!-- Complaint Info -->
+        <div class="card mt-16">
+          <div style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:12px;">Complaint Details</div>
+          <div class="info-row"><span class="info-key">Category</span><span class="info-val">{{ complaint.category }}</span></div>
+          <div class="info-row"><span class="info-key">Severity</span><span class="info-val"><span class="badge badge-{{ complaint.severity.lower() }}">{{ complaint.severity }}</span></span></div>
+          <div class="info-row"><span class="info-key">Location</span><span class="info-val"><i class="ti ti-map-pin" style="color:var(--teal); font-size:12px;"></i> {{ complaint.location }}</span></div>
+          <div class="info-row" style="border:none;"><span class="info-key">Reported</span><span class="info-val">{{ complaint.created_at }}</span></div>
+        </div>
+      </div>
+
+      <!-- Update Form -->
+      <div>
+        <div class="card" style="border:1.5px solid var(--amber);">
+          <div style="font-size:15px; font-weight:700; color:var(--text-primary); margin-bottom:4px; display:flex; align-items:center; gap:8px;">
+            <i class="ti ti-refresh" style="color:var(--amber);"></i> Update Complaint Status
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:20px;">
+            Changes here reflect immediately on the citizen's tracking page.
+          </div>
+
+          <form method="POST">
+
+            <!-- Status Select -->
+            <div class="form-group">
+              <label class="form-label">Set Status <span style="color:var(--red);">*</span></label>
+              <select name="status" id="statusSelect" class="form-select" onchange="toggleFields()">
+                {% for s in statuses %}
+                <option value="{{ s }}" {% if complaint.status == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Status Guide -->
+            <div style="background:var(--bg); border-radius:var(--radius-md); padding:12px 14px; margin-bottom:18px;">
+              <div style="font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">Status guide</div>
+              {% for s, icon, color, desc in [
+                ('Pending',     'ti-clock',               'var(--amber)', 'Not yet reviewed by admin'),
+                ('Accepted',    'ti-circle-check',        'var(--teal)',  'Complaint valid, work will begin'),
+                ('Rejected',    'ti-circle-x',            'var(--red)',   'Complaint invalid — must provide reason'),
+                ('In Progress', 'ti-tools',               'var(--blue)',  'Work has started — share update with citizen'),
+                ('Resolved',    'ti-circle-check-filled', 'var(--teal)', 'Issue fixed and closed'),
+              ] %}
+              <div style="display:flex; gap:8px; align-items:flex-start; margin-bottom:5px; font-size:12px;">
+                <i class="ti {{ icon }}" style="color:{{ color }}; margin-top:2px; flex-shrink:0;"></i>
+                <div><strong>{{ s }}</strong> — <span style="color:var(--text-secondary);">{{ desc }}</span></div>
+              </div>
+              {% endfor %}
+            </div>
+
+            <!-- Rejection Note (shown when Rejected) -->
+            <div id="rejectionBox" style="display:none;" class="form-group">
+              <label class="form-label" style="color:var(--red);">
+                <i class="ti ti-message-x"></i> Reason for Rejection <span style="color:var(--red);">*</span>
+              </label>
+              <textarea name="rejection_note" class="form-input" rows="3"
+                style="resize:vertical;"
+                placeholder="Tell the citizen why their complaint was rejected. E.g. 'The photo is unclear. Please resubmit with a clearer image showing the exact location of the issue.'"
+              >{{ complaint.rejection_note or '' }}</textarea>
+              <div style="font-size:12px; color:var(--text-muted); margin-top:5px;">
+                This message will be shown to the citizen on their Track Status page.
+              </div>
+            </div>
+
+            <!-- Progress Note (shown when In Progress) -->
+            <div id="progressBox" style="display:none;" class="form-group">
+              <label class="form-label" style="color:var(--blue);">
+                <i class="ti ti-tools"></i> Work Update for Citizen
+              </label>
+              <textarea name="progress_note" class="form-input" rows="3"
+                style="resize:vertical;"
+                placeholder="Share a progress update. E.g. 'Our road repair team has been dispatched to your location. Estimated completion: 2 days.'"
+              >{{ complaint.progress_note or '' }}</textarea>
+              <div style="font-size:12px; color:var(--text-muted); margin-top:5px;">
+                This update is shown to the citizen on their tracking page.
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:12px; font-size:15px;">
+              <i class="ti ti-check"></i> Save & Update Citizen
+            </button>
+          </form>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <span>Smart City Complaint Assistant</span> &nbsp;·&nbsp; Admin Panel
+</footer>
+
+<script>
+  function toggleFields() {
+    const status = document.getElementById('statusSelect').value;
+    document.getElementById('rejectionBox').style.display = status === 'Rejected'    ? 'block' : 'none';
+    document.getElementById('progressBox').style.display  = status === 'In Progress' ? 'block' : 'none';
+  }
+  // Run on load to restore correct state
+  toggleFields();
+</script>
+</body>
+</html>

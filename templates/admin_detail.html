@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Complaint #{{ complaint.id }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container navbar-inner">
+    <div class="navbar-logo">
+      <div class="logo-dot"><i class="ti ti-shield-lock"></i></div>
+      Admin Panel
+    </div>
+    <div class="navbar-links">
+      <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline btn-sm">
+        <i class="ti ti-arrow-left"></i> Back to dashboard
+      </a>
+      <a href="{{ url_for('admin_logout') }}" style="font-size:13px; color:var(--text-muted);">Logout</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page-body">
+  <div class="container">
+
+    <div class="page-header">
+      <div>
+        <div class="section-title">Admin view</div>
+        <h1>Complaint #{{ complaint.id }}</h1>
+      </div>
+      <div class="flex gap-8 align-center">
+        <span class="badge badge-{{ complaint.severity.lower() }}">{{ complaint.severity }} severity</span>
+        {% set st = complaint.status.lower().replace(' ','') %}
+        <span class="badge badge-{{ st }}">{{ complaint.status }}</span>
+      </div>
+    </div>
+
+    <!-- AI Banner -->
+    <div style="background:var(--teal-light); border:1px solid var(--teal-mid); border-radius:var(--radius-lg); padding:16px 20px; margin-bottom:24px; display:flex; gap:12px;">
+      <i class="ti ti-robot" style="color:var(--teal-dark); font-size:22px; flex-shrink:0; margin-top:2px;"></i>
+      <div>
+        <div style="font-size:13px; font-weight:600; color:var(--teal-deeper); margin-bottom:4px;">AI Classification</div>
+        <div style="font-size:14px; color:var(--teal-dark);">{{ complaint.description }}</div>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+
+      <!-- Image -->
+      <div>
+        <div class="detail-image">
+          {% if complaint.image_path %}
+            <img src="{{ url_for('static', filename=complaint.image_path.replace('static/','')) }}" alt="Complaint photo" />
+          {% else %}
+            <div class="no-image"><i class="ti ti-photo-off" style="font-size:32px;"></i></div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Update + Details -->
+      <div>
+
+        <!-- Update Status Card -->
+        <div class="card mb-16" style="border:1.5px solid var(--teal);">
+          <div style="font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:4px; display:flex; align-items:center; gap:8px;">
+            <i class="ti ti-refresh" style="color:var(--teal);"></i> Update Complaint Status
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">
+            Changing status here will immediately reflect on the citizen's tracking page.
+          </div>
+          <form method="POST" action="{{ url_for('admin_update_status', complaint_id=complaint.id) }}">
+            <div class="form-group" style="margin-bottom:12px;">
+              <label class="form-label">New Status</label>
+              <select name="status" class="form-select">
+                {% for s in ['Pending', 'In Progress', 'Resolved'] %}
+                  <option value="{{ s }}" {% if complaint.status == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+              <i class="ti ti-check"></i> Save Status Update
+            </button>
+          </form>
+
+          <!-- Status meaning guide -->
+          <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
+            <div style="font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">Status guide</div>
+            {% for s, icon, color, desc in [
+              ('Pending',     'ti-clock',        'var(--amber)', 'Complaint received, not yet assigned'),
+              ('In Progress', 'ti-tools',        'var(--blue)',  'Team dispatched, work is ongoing'),
+              ('Resolved',    'ti-circle-check', 'var(--teal)',  'Issue fixed, complaint closed'),
+            ] %}
+            <div style="display:flex; gap:8px; align-items:flex-start; margin-bottom:6px; font-size:12px;">
+              <i class="ti {{ icon }}" style="color:{{ color }}; margin-top:2px; flex-shrink:0;"></i>
+              <div><strong>{{ s }}</strong> — <span style="color:var(--text-secondary);">{{ desc }}</span></div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Details -->
+        <div class="card">
+          <div style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:12px;">Complaint Details</div>
+          <div class="info-row"><span class="info-key">Category</span><span class="info-val">{{ complaint.category }}</span></div>
+          <div class="info-row"><span class="info-key">Severity</span><span class="info-val"><span class="badge badge-{{ complaint.severity.lower() }}">{{ complaint.severity }}</span></span></div>
+          <div class="info-row"><span class="info-key">Location</span><span class="info-val"><i class="ti ti-map-pin" style="color:var(--teal); font-size:12px;"></i> {{ complaint.location }}</span></div>
+          <div class="info-row"><span class="info-key">Reported</span><span class="info-val">{{ complaint.created_at }}</span></div>
+          <div class="info-row" style="border:none;"><span class="info-key">Complaint ID</span><span class="info-val">#{{ complaint.id }}</span></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer class="footer">
+  <span>Smart City Complaint Assistant</span> &nbsp;·&nbsp; Admin Panel
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — Smart City Complaint Assistant</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
+  <style>
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:500; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:var(--bg-card); border-radius:var(--border-radius-lg,16px); padding:28px; max-width:440px; width:90%; box-shadow:0 8px 32px rgba(0,0,0,0.2); }
+    .modal-title { font-size:16px; font-weight:700; color:#791F1F; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+    .modal-sub   { font-size:13px; color:var(--text-secondary); margin-bottom:16px; }
+    textarea.form-input { resize:vertical; min-height:100px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="container navbar-inner">
+    <div class="navbar-logo">
+      <div class="logo-dot"><i class="ti ti-shield-lock"></i></div>
+      Admin Panel
+      <span style="font-size:11px;background:var(--teal-light);color:var(--teal-deeper);padding:2px 8px;border-radius:100px;margin-left:6px;font-weight:500;">Municipal Officer</span>
+    </div>
+    <div class="navbar-links">
+      <a href="{{ url_for('index') }}" style="font-size:13px;color:var(--text-muted);"><i class="ti ti-world"></i> Public Site</a>
+      <a href="{{ url_for('admin_logout') }}" class="btn btn-outline btn-sm"><i class="ti ti-logout"></i> Logout</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page-body">
+  <div class="container">
+    <div class="page-header">
+      <div>
+        <div class="section-title">Municipal authority view</div>
+        <h1>Complaint Management</h1>
+        <p>Review and update the status of all citizen complaints. Changes reflect instantly on citizen tracking.</p>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid-4 mb-24">
+      <div class="card card-sm" style="text-align:center;border-top:3px solid var(--teal);">
+        <div style="font-size:26px;font-weight:700;color:var(--teal);">{{ stats.total }}</div>
+        <div style="font-size:12px;color:var(--text-muted);">Total</div>
+      </div>
+      <div class="card card-sm" style="text-align:center;border-top:3px solid var(--amber);">
+        <div style="font-size:26px;font-weight:700;color:var(--amber);">{{ stats.pending }}</div>
+        <div style="font-size:12px;color:var(--text-muted);">Pending</div>
+      </div>
+      <div class="card card-sm" style="text-align:center;border-top:3px solid var(--blue);">
+        <div style="font-size:26px;font-weight:700;color:var(--blue);">{{ stats.in_progress }}</div>
+        <div style="font-size:12px;color:var(--text-muted);">In Progress</div>
+      </div>
+      <div class="card card-sm" style="text-align:center;border-top:3px solid var(--green);">
+        <div style="font-size:26px;font-weight:700;color:var(--green);">{{ stats.resolved }}</div>
+        <div style="font-size:12px;color:var(--text-muted);">Resolved</div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    {% if complaints %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Citizen</th>
+            <th>Category</th>
+            <th>Severity</th>
+            <th>Location</th>
+            <th>Reported</th>
+            <th>Status</th>
+            <th style="min-width:230px;">Update Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in complaints %}
+          {% set icons = {
+            'Pothole / Road Damage':    ('ti-road','icon-pothole'),
+            'Garbage / Waste Overflow': ('ti-trash','icon-garbage'),
+            'Waterlogging / Drainage':  ('ti-droplet','icon-water'),
+            'Broken Streetlight':       ('ti-bulb','icon-streetlight'),
+            'Sewage / Open Drain':      ('ti-ripple','icon-sewage'),
+          } %}
+          {% set icon_data = icons.get(c.category,('ti-alert-circle','icon-other')) %}
+          {% set st = c.status.lower().replace(' ','') %}
+          <tr>
+            <td style="font-weight:600;color:var(--teal);">#{{ c.id }}</td>
+            <td>
+              <div style="font-size:13px;font-weight:500;">{{ c.citizen_name or 'Anonymous' }}</div>
+              <div style="font-size:11px;color:var(--text-muted);">{{ c.citizen_email or '' }}</div>
+            </td>
+            <td>
+              <div class="flex align-center gap-8">
+                <div class="complaint-icon {{ icon_data[1] }}" style="width:28px;height:28px;font-size:13px;">
+                  <i class="ti {{ icon_data[0] }}"></i>
+                </div>
+                <span style="font-size:13px;">{{ c.category }}</span>
+              </div>
+            </td>
+            <td><span class="badge badge-{{ c.severity.lower() }}">{{ c.severity }}</span></td>
+            <td style="font-size:13px;color:var(--text-secondary);">{{ c.location }}</td>
+            <td style="font-size:12px;color:var(--text-muted);">{{ c.created_at }}</td>
+            <td><span class="badge badge-{{ st }}">{{ c.status }}</span></td>
+            <td>
+              <!-- Inline form for non-rejection statuses -->
+              <form method="POST" action="{{ url_for('admin_update_status', complaint_id=c.id) }}"
+                    id="form-{{ c.id }}" style="display:flex;gap:6px;align-items:center;">
+                <input type="hidden" name="rejection_reason" id="reason-{{ c.id }}" value="" />
+                <select name="status" class="form-select" style="font-size:12px;padding:5px 8px;"
+                        id="select-{{ c.id }}"
+                        onchange="handleStatusChange({{ c.id }}, this.value)">
+                  {% for s in ['Pending','In Progress','Resolved','Rejected'] %}
+                    <option value="{{ s }}" {% if c.status==s %}selected{% endif %}
+                      {% if s=='Rejected' %}style="color:var(--red);"{% endif %}>{{ s }}</option>
+                  {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm" style="white-space:nowrap;padding:5px 12px;"
+                        id="btn-{{ c.id }}">
+                  <i class="ti ti-check"></i> Update
+                </button>
+              </form>
+            </td>
+            <td>
+              <a href="{{ url_for('admin_complaint_detail', complaint_id=c.id) }}" class="btn btn-outline btn-sm">View</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state card">
+      <div class="empty-icon"><i class="ti ti-clipboard-check"></i></div>
+      <p>No complaints submitted yet.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Rejection Reason Modal -->
+<div class="modal-overlay" id="rejectModal">
+  <div class="modal-box">
+    <div class="modal-title">
+      <i class="ti ti-x-circle"></i> Rejection Reason Required
+    </div>
+    <div class="modal-sub">Please explain why this complaint is being rejected. The citizen will see this reason on their tracking page.</div>
+
+    <div class="form-group">
+      <label class="form-label">Reason for rejection <span style="color:var(--red);">*</span></label>
+      <textarea class="form-input" id="rejectReasonInput" placeholder="e.g. Duplicate complaint already reported, insufficient photo evidence, outside jurisdiction area..."></textarea>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn btn-outline" onclick="closeRejectModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmRejection()" style="background:var(--red);color:white;border-color:var(--red);">
+        <i class="ti ti-x"></i> Confirm Rejection
+      </button>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <span>Smart City Complaint Assistant</span> &nbsp;·&nbsp; Admin Panel &nbsp;·&nbsp; SDG 11
+</footer>
+
+<script>
+  let currentComplaintId = null;
+
+  function handleStatusChange(id, value) {
+    if (value === 'Rejected') {
+      currentComplaintId = id;
+      document.getElementById('rejectReasonInput').value = '';
+      document.getElementById('rejectModal').classList.add('open');
+    }
+  }
+
+  function closeRejectModal() {
+    document.getElementById('rejectModal').classList.remove('open');
+    // Reset the select back to previous value
+    if (currentComplaintId) {
+      const sel = document.getElementById('select-' + currentComplaintId);
+      // find first non-rejected option that was selected before
+      for (let opt of sel.options) {
+        if (opt.value !== 'Rejected') { sel.value = opt.value; break; }
+      }
+    }
+    currentComplaintId = null;
+  }
+
+  function confirmRejection() {
+    const reason = document.getElementById('rejectReasonInput').value.trim();
+    if (!reason) {
+      document.getElementById('rejectReasonInput').style.borderColor = 'var(--red)';
+      document.getElementById('rejectReasonInput').focus();
+      return;
+    }
+    document.getElementById('reason-' + currentComplaintId).value = reason;
+    document.getElementById('rejectModal').classList.remove('open');
+    document.getElementById('form-' + currentComplaintId).submit();
+  }
+
+  // Close modal on overlay click
+  document.getElementById('rejectModal').addEventListener('click', function(e) {
+    if (e.target === this) closeRejectModal();
+  });
+</script>
+</body>
+</html>

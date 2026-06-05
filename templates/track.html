@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Track Complaint — Smart City Complaint Assistant{% endblock %}
+{% block content %}
+<div class="page-body">
+  <div class="container" style="max-width:640px;">
+    <div class="page-header">
+      <div>
+        <div class="section-title">Citizen self-service</div>
+        <h1>Track your complaint</h1>
+        <p>Enter your Complaint ID to see the live status.</p>
+      </div>
+    </div>
+ 
+    <!-- Search -->
+    <div class="card mb-24">
+      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+        <i class="ti ti-search" style="color:var(--teal);"></i> Enter your Complaint ID
+      </div>
+      <form method="POST">
+        <div style="display:flex;gap:10px;align-items:flex-end;">
+          <div style="flex:1;">
+            <label class="form-label">Complaint ID</label>
+            <input type="text" name="complaint_id" class="form-input" placeholder="e.g. 1, 2, 3..."
+                   value="{{ request.form.get('complaint_id','') }}" />
+          </div>
+          <button type="submit" class="btn btn-primary" style="padding:10px 24px;">
+            <i class="ti ti-search"></i> Track
+          </button>
+        </div>
+      </form>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text-muted);">
+        <i class="ti ti-info-circle"></i> Your Complaint ID is shown on the confirmation page right after submitting.
+      </div>
+    </div>
+ 
+    {% if error %}
+    <div class="form-error mb-24"><i class="ti ti-alert-circle"></i> {{ error }}</div>
+    {% endif %}
+ 
+    {% if complaint %}
+      {% if not is_owner and session.get('user_id') %}
+        <!-- Not the owner -->
+        <div style="background:var(--amber-light);border:1px solid #F5D49A;border-radius:var(--radius-lg);padding:16px 20px;display:flex;gap:12px;align-items:flex-start;">
+          <i class="ti ti-lock" style="color:var(--amber);font-size:20px;flex-shrink:0;margin-top:2px;"></i>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:#633806;margin-bottom:4px;">This is not your complaint</div>
+            <div style="font-size:13px;color:#633806;line-height:1.6;">
+              Complaint #{{ complaint.id }} belongs to another citizen. You can only track your own complaints.<br>
+              <a href="{{ url_for('my_complaints') }}" style="color:#633806;font-weight:600;text-decoration:underline;">View your own complaints</a>
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <!-- Owner or not logged in — show full status -->
+        {% set st = complaint.status %}
+        {% set color_map = {'Pending':'var(--amber)','In Progress':'var(--blue)','Resolved':'var(--teal)','Rejected':'var(--red)'} %}
+        {% set icon_map  = {'Pending':'ti-clock','In Progress':'ti-tools','Resolved':'ti-circle-check-filled','Rejected':'ti-x-circle'} %}
+        {% set color = color_map.get(st, 'var(--text-muted)') %}
+        {% set icon  = icon_map.get(st, 'ti-help') %}
+ 
+        <div class="card mb-16" style="border:1.5px solid {{ color }};">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+            <div style="width:48px;height:48px;border-radius:50%;background:{{ color }}22;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="ti {{ icon }}" style="font-size:22px;color:{{ color }};"></i>
+            </div>
+            <div>
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:2px;">Complaint #{{ complaint.id }} — Current Status</div>
+              <div style="font-size:20px;font-weight:700;color:{{ color }};">{{ st }}</div>
+            </div>
+            <span class="badge badge-{{ st.lower().replace(' ','') }}" style="margin-left:auto;">{{ st }}</span>
+          </div>
+ 
+          {% if st != 'Rejected' %}
+          <div style="display:flex;align-items:center;margin-bottom:16px;">
+            {% for step, active in [('Submitted', True), ('In Progress', st in ('In Progress','Resolved')), ('Resolved', st == 'Resolved')] %}
+            <div style="text-align:center;flex:1;">
+              <div style="width:30px;height:30px;border-radius:50%;margin:0 auto 5px;background:{% if active %}var(--teal){% else %}var(--border){% endif %};display:flex;align-items:center;justify-content:center;">
+                <i class="ti ti-check" style="font-size:14px;color:{% if active %}white{% else %}var(--text-muted){% endif %};"></i>
+              </div>
+              <div style="font-size:11px;font-weight:{% if active %}600{% else %}400{% endif %};color:{% if active %}var(--teal-dark){% else %}var(--text-muted){% endif %};">{{ step }}</div>
+            </div>
+            {% if not loop.last %}
+            <div style="flex:1;height:2px;background:{% if active %}var(--teal){% else %}var(--border){% endif %};margin-bottom:22px;"></div>
+            {% endif %}
+            {% endfor %}
+          </div>
+          {% endif %}
+ 
+          <div style="background:var(--bg);border-radius:var(--radius-md);padding:14px 16px;">
+            <div class="info-row" style="padding:8px 0;"><span class="info-key">Category</span><span class="info-val">{{ complaint.category }}</span></div>
+            <div class="info-row" style="padding:8px 0;"><span class="info-key">Severity</span><span class="info-val"><span class="badge badge-{{ complaint.severity.lower() }}">{{ complaint.severity }}</span></span></div>
+            <div class="info-row" style="padding:8px 0;"><span class="info-key">Location</span><span class="info-val"><i class="ti ti-map-pin" style="color:var(--teal);font-size:12px;"></i> {{ complaint.location }}</span></div>
+            <div class="info-row" style="padding:8px 0;border-bottom:none;"><span class="info-key">Reported</span><span class="info-val">{{ complaint.created_at }}</span></div>
+          </div>
+        </div>
+ 
+        {% if st == 'Pending' %}
+        <div style="background:var(--amber-light);border:1px solid #F5D49A;border-radius:var(--radius-lg);padding:14px 18px;display:flex;gap:10px;margin-bottom:16px;">
+          <i class="ti ti-clock" style="color:var(--amber);font-size:18px;flex-shrink:0;margin-top:2px;"></i>
+          <div style="font-size:13px;color:#633806;line-height:1.6;"><strong>Your complaint is pending review.</strong> Municipal authorities have been notified. Check back using Complaint ID <strong>#{{ complaint.id }}</strong>.</div>
+        </div>
+        {% elif st == 'In Progress' %}
+        <div style="background:var(--blue-light);border:1px solid #A8CCEE;border-radius:var(--radius-lg);padding:14px 18px;display:flex;gap:10px;margin-bottom:16px;">
+          <i class="ti ti-tools" style="color:var(--blue);font-size:18px;flex-shrink:0;margin-top:2px;"></i>
+          <div style="font-size:13px;color:#0C447C;line-height:1.6;"><strong>Work is in progress!</strong> The municipal team is actively working on your complaint.</div>
+        </div>
+        {% elif st == 'Resolved' %}
+        <div style="background:var(--teal-light);border:1px solid var(--teal-mid);border-radius:var(--radius-lg);padding:14px 18px;display:flex;gap:10px;margin-bottom:16px;">
+          <i class="ti ti-circle-check-filled" style="color:var(--teal);font-size:18px;flex-shrink:0;margin-top:2px;"></i>
+          <div style="font-size:13px;color:var(--teal-deeper);line-height:1.6;"><strong>Complaint resolved!</strong> Thank you for helping improve your city.</div>
+        </div>
+        {% elif st == 'Rejected' %}
+        <div style="background:var(--red-light);border:1px solid #F7C1C1;border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:16px;">
+          <div style="display:flex;gap:10px;align-items:flex-start;">
+            <i class="ti ti-x-circle" style="color:var(--red);font-size:20px;flex-shrink:0;margin-top:2px;"></i>
+            <div>
+              <div style="font-size:14px;font-weight:700;color:#791F1F;margin-bottom:6px;">Complaint Rejected</div>
+              {% if complaint.rejection_reason %}
+              <div style="background:white;border:1px solid #F7C1C1;border-radius:var(--radius-md);padding:12px 14px;margin-bottom:8px;">
+                <div style="font-size:11px;font-weight:600;color:#791F1F;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;"><i class="ti ti-message-circle"></i> Reason from authority</div>
+                <div style="font-size:13px;color:#791F1F;line-height:1.6;">{{ complaint.rejection_reason }}</div>
+              </div>
+              {% endif %}
+              <div style="font-size:12px;color:#791F1F;">Please resubmit with a clearer photo if the issue persists. <a href="{{ url_for('report') }}" style="color:#791F1F;font-weight:600;text-decoration:underline;">Report again</a>.</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+ 
+      {% endif %}
+    {% endif %}
+ 
+    {% if not complaint and not error %}
+    <div class="card" style="background:var(--bg);">
+      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:12px;">
+        <i class="ti ti-help-circle" style="color:var(--teal);"></i> How do I find my Complaint ID?
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;gap:10px;font-size:13px;color:var(--text-secondary);">
+          <i class="ti ti-arrow-right" style="color:var(--teal);flex-shrink:0;margin-top:2px;"></i>
+          After submitting, the confirmation page shows your Complaint ID (e.g. <strong>#1</strong>).
+        </div>
+        <div style="display:flex;gap:10px;font-size:13px;color:var(--text-secondary);">
+          <i class="ti ti-arrow-right" style="color:var(--teal);flex-shrink:0;margin-top:2px;"></i>
+          If signed in, go to <a href="{{ url_for('my_complaints') }}" style="color:var(--teal);font-weight:500;">My Complaints</a> to see all your submissions.
+        </div>
+        <div style="display:flex;gap:10px;font-size:13px;color:var(--text-secondary);">
+          <i class="ti ti-arrow-right" style="color:var(--teal);flex-shrink:0;margin-top:2px;"></i>
+          Not submitted yet? <a href="{{ url_for('report') }}" style="color:var(--teal);font-weight:500;">Report an issue now</a>.
+        </div>
+      </div>
+    </div>
+    {% endif %}
+ 
+  </div>
+</div>
+{% endblock %}

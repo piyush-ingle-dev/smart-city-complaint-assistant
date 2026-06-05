@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}My Complaints — Smart City Complaint Assistant{% endblock %}
+{% block content %}
+<div class="page-body">
+  <div class="container">
+    <div class="page-header">
+      <div>
+        <div class="section-title">Citizen dashboard</div>
+        <h1>My Complaints</h1>
+        <p>All complaints submitted by {{ session.user_name }}</p>
+      </div>
+      <a href="{{ url_for('report') }}" class="btn btn-primary btn-sm">
+        <i class="ti ti-plus"></i> Report New Issue
+      </a>
+    </div>
+
+    {% if complaints %}
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      {% for c in complaints %}
+      {% set icons = {
+        'Pothole / Road Damage':    ('ti-road','icon-pothole'),
+        'Garbage / Waste Overflow': ('ti-trash','icon-garbage'),
+        'Waterlogging / Drainage':  ('ti-droplet','icon-water'),
+        'Broken Streetlight':       ('ti-bulb','icon-streetlight'),
+        'Sewage / Open Drain':      ('ti-ripple','icon-sewage'),
+      } %}
+      {% set icon_data = icons.get(c.category, ('ti-alert-circle','icon-other')) %}
+      {% set st = c.status.lower().replace(' ','') %}
+      <div class="card" style="{% if c.status=='Rejected' %}border-color:#F7C1C1;{% elif c.status=='Resolved' %}border-color:var(--teal-mid);{% endif %}">
+        <div style="display:flex;align-items:flex-start;gap:14px;">
+          <div class="complaint-icon {{ icon_data[1] }}">
+            <i class="ti {{ icon_data[0] }}"></i>
+          </div>
+          <div style="flex:1;">
+            <div class="flex align-center gap-8 mb-8" style="flex-wrap:wrap;">
+              <span style="font-size:14px;font-weight:600;color:var(--text-primary);">{{ c.category }}</span>
+              <span class="badge badge-{{ c.severity.lower() }}">{{ c.severity }}</span>
+              <span class="badge badge-{{ st }}">{{ c.status }}</span>
+              <span style="font-size:12px;color:var(--text-muted);margin-left:auto;">
+                <i class="ti ti-map-pin" style="font-size:11px;"></i> {{ c.location }} &nbsp;·&nbsp; {{ c.created_at }}
+              </span>
+            </div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">{{ c.description[:160] }}{% if c.description|length > 160 %}...{% endif %}</p>
+
+            {% if c.status == 'Rejected' and c.rejection_reason %}
+            <div class="rejection-box mt-8">
+              <strong><i class="ti ti-x-circle"></i> Rejection reason:</strong> {{ c.rejection_reason }}
+            </div>
+            {% endif %}
+          </div>
+          <a href="{{ url_for('complaint_detail', complaint_id=c.id) }}" class="btn btn-outline btn-sm" style="flex-shrink:0;">
+            View <i class="ti ti-arrow-right"></i>
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state card">
+      <div class="empty-icon"><i class="ti ti-clipboard-list"></i></div>
+      <p>You have not submitted any complaints yet.</p>
+      <a href="{{ url_for('report') }}" class="btn btn-primary mt-16">Report your first issue</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

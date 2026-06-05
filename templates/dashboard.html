@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Smart City Complaint Assistant{% endblock %}
+
+{% block content %}
+<div class="page-body">
+  <div class="container">
+
+    <div class="page-header">
+      <div>
+        <div class="section-title">Analytics</div>
+        <h1>City Dashboard</h1>
+        <p>Live overview of all civic complaints and resolution trends.</p>
+      </div>
+      <a href="{{ url_for('report') }}" class="btn btn-primary btn-sm">
+        <i class="ti ti-plus"></i> Report Issue
+      </a>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid-4 mb-24">
+      <div class="card card-sm" style="text-align:center;">
+        <div style="font-size:28px; font-weight:700; color:var(--teal);">{{ stats.total }}</div>
+        <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">Total complaints</div>
+      </div>
+      <div class="card card-sm" style="text-align:center;">
+        <div style="font-size:28px; font-weight:700; color:var(--amber);">{{ stats.pending }}</div>
+        <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">Pending</div>
+      </div>
+      <div class="card card-sm" style="text-align:center;">
+        <div style="font-size:28px; font-weight:700; color:var(--blue);">{{ stats.in_progress }}</div>
+        <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">In Progress</div>
+      </div>
+      <div class="card card-sm" style="text-align:center;">
+        <div style="font-size:28px; font-weight:700; color:var(--green);">{{ stats.resolved }}</div>
+        <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">Resolved</div>
+      </div>
+    </div>
+
+    <div class="dash-grid mb-24">
+
+      <!-- Category Breakdown -->
+      <div class="card">
+        <div style="font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:16px; display:flex; align-items:center; gap:6px;">
+          <i class="ti ti-chart-bar" style="color:var(--teal);"></i> Issues by Category
+        </div>
+        {% if cat_data %}
+          {% set max_count = cat_data[0].count %}
+          {% for row in cat_data %}
+          <div class="bar-row">
+            <span class="bar-label" title="{{ row.category }}">
+              {{ row.category | truncate(22, True, '…') }}
+            </span>
+            <div class="bar-track">
+              <div class="bar-fill" style="width: {{ ((row.count / max_count) * 100) | int }}%;"></div>
+            </div>
+            <span class="bar-count">{{ row.count }}</span>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted" style="font-size:13px;">No data yet.</p>
+        {% endif %}
+      </div>
+
+      <!-- Status Breakdown -->
+      <div class="card">
+        <div style="font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:16px; display:flex; align-items:center; gap:6px;">
+          <i class="ti ti-chart-donut" style="color:var(--teal);"></i> Status Overview
+        </div>
+        {% if stats.total > 0 %}
+          {% set items = [
+            ('Pending',     stats.pending,     'var(--amber)', 'badge-pending'),
+            ('In Progress', stats.in_progress, 'var(--blue)',  'badge-inprogress'),
+            ('Resolved',    stats.resolved,    'var(--teal)',  'badge-resolved'),
+          ] %}
+          {% for label, count, color, badge in items %}
+          <div class="bar-row">
+            <span class="bar-label">{{ label }}</span>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:{{ ((count / stats.total) * 100) | int }}%; background:{{ color }};"></div>
+            </div>
+            <span class="bar-count">{{ count }}</span>
+          </div>
+          {% endfor %}
+          <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border); font-size:13px; color:var(--text-secondary);">
+            Resolution rate:
+            <strong style="color:var(--teal);">
+              {% if stats.total > 0 %}{{ ((stats.resolved / stats.total) * 100) | int }}%{% else %}0%{% endif %}
+            </strong>
+          </div>
+        {% else %}
+          <p class="text-muted" style="font-size:13px;">No data yet.</p>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <div class="dash-grid mb-24">
+
+      <!-- Weekly Trend -->
+      <div class="card">
+        <div style="font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:16px; display:flex; align-items:center; gap:6px;">
+          <i class="ti ti-trending-up" style="color:var(--teal);"></i> Last 7 Days
+        </div>
+        {% if weekly %}
+          {% set max_w = weekly | map(attribute='count') | max %}
+          {% for row in weekly %}
+          <div class="bar-row">
+            <span class="bar-label">{{ row.day }}</span>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:{{ ((row.count / max_w) * 100) | int }}%; background:var(--blue);"></div>
+            </div>
+            <span class="bar-count">{{ row.count }}</span>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted" style="font-size:13px;">No complaints in the last 7 days.</p>
+        {% endif %}
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="card">
+        <div style="font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:16px; display:flex; align-items:center; gap:6px;">
+          <i class="ti ti-clock" style="color:var(--teal);"></i> Recent Activity
+        </div>
+        {% if recent %}
+          {% set dot_colors = {'High':'var(--red)', 'Medium':'var(--amber)', 'Low':'var(--teal)'} %}
+          {% for c in recent %}
+          <div class="timeline-item">
+            <div class="tl-dot" style="background:{{ dot_colors.get(c.severity, 'var(--teal)') }};"></div>
+            <div>
+              <div class="tl-text">
+                <a href="{{ url_for('complaint_detail', complaint_id=c.id) }}" style="color:var(--text-primary); font-weight:500;">
+                  {{ c.category }}
+                </a>
+              </div>
+              <div class="tl-time">
+                <i class="ti ti-map-pin" style="font-size:11px;"></i> {{ c.location }} &nbsp;·&nbsp; {{ c.created_at }}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted" style="font-size:13px;">No recent activity.</p>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- Top Issue Info Box -->
+    {% if stats.total > 0 %}
+    <div style="background:var(--teal-light); border:1px solid var(--teal-mid); border-radius:var(--radius-lg); padding:18px 22px; display:flex; align-items:center; gap:14px;">
+      <i class="ti ti-alert-triangle" style="color:var(--teal-dark); font-size:24px; flex-shrink:0;"></i>
+      <div>
+        <div style="font-size:13px; font-weight:600; color:var(--teal-deeper);">Most reported issue</div>
+        <div style="font-size:15px; font-weight:700; color:var(--teal-dark); margin-top:2px;">{{ stats.top_category }}</div>
+      </div>
+      <a href="{{ url_for('complaints') }}" class="btn btn-outline btn-sm" style="margin-left:auto;">
+        View all <i class="ti ti-arrow-right"></i>
+      </a>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

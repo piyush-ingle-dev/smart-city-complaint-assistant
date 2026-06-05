@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Report an Issue — Smart City Complaint Assistant{% endblock %}
+
+{% block content %}
+<div class="page-body">
+  <div class="container" style="max-width: 680px;">
+
+    <div class="page-header">
+      <div>
+        <div class="section-title">Citizen reporting</div>
+        <h1>Report a city issue</h1>
+        <p>Upload a photo and our AI will classify the problem automatically.</p>
+      </div>
+    </div>
+
+    {% if error %}
+      <div class="form-error"><i class="ti ti-alert-circle"></i> {{ error }}</div>
+    {% endif %}
+
+    <div class="card">
+      <form method="POST" enctype="multipart/form-data" id="reportForm">
+
+        <!-- Upload Box -->
+        <div class="form-group">
+          <label class="form-label">Photo of the issue <span style="color:var(--red);">*</span></label>
+          <div class="upload-box" id="uploadBox" onclick="document.getElementById('imageInput').click()">
+            <div class="upload-icon"><i class="ti ti-camera-plus"></i></div>
+            <p id="uploadText">Click to choose a photo or drag and drop here</p>
+            <img id="file-preview" src="" alt="Preview" />
+            <div class="upload-hint">JPG, PNG, WEBP — Max 5MB</div>
+          </div>
+          <input type="file" name="image" id="imageInput" accept=".jpg,.jpeg,.png,.webp"
+                 style="display:none;" onchange="previewImage(this)" required />
+        </div>
+
+        <!-- Location -->
+        <div class="form-group">
+          <label class="form-label" for="location">Your location <span style="color:var(--red);">*</span></label>
+          <input type="text" name="location" id="location" class="form-input"
+                 placeholder="e.g. Wardha Road, Nagpur" required />
+          <div style="font-size:12px; color:var(--text-muted); margin-top:5px;">
+            Enter the area, road name, or landmark nearest to the issue.
+          </div>
+        </div>
+
+        <!-- AI Info Box -->
+        <div style="background:var(--teal-light); border:1px solid var(--teal-mid); border-radius:var(--radius-md); padding:14px 16px; margin-bottom:20px; display:flex; gap:10px; align-items:flex-start;">
+          <i class="ti ti-robot" style="color:var(--teal-dark); font-size:18px; margin-top:2px; flex-shrink:0;"></i>
+          <div>
+            <div style="font-size:13px; font-weight:600; color:var(--teal-deeper); margin-bottom:3px;">AI will handle the rest</div>
+            <div style="font-size:12px; color:var(--teal-dark); line-height:1.5;">After you submit, our AI will automatically identify the issue category, assign a severity level, and write a complaint description from your photo. No manual input needed.</div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:12px;" id="submitBtn">
+          <i class="ti ti-send"></i> Submit Complaint
+        </button>
+
+      </form>
+    </div>
+
+    <!-- What happens next -->
+    <div class="card mt-24" style="background:var(--bg);">
+      <div style="font-size:13px; font-weight:600; color:var(--text-primary); margin-bottom:12px;">What happens after you submit?</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        {% for step in [
+          ('ti-brain', 'AI analyses your photo and classifies the issue type and severity'),
+          ('ti-file-text', 'A complaint is automatically created with a description'),
+          ('ti-database', 'Your complaint is logged in the system with a unique ID'),
+          ('ti-chart-dots', 'It appears on the live dashboard for city authorities to see'),
+        ] %}
+        <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:var(--text-secondary);">
+          <i class="ti {{ step[0] }}" style="color:var(--teal); font-size:16px; flex-shrink:0;"></i>
+          {{ step[1] }}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function previewImage(input) {
+    const preview = document.getElementById('file-preview');
+    const box     = document.getElementById('uploadBox');
+    const text    = document.getElementById('uploadText');
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        preview.src   = e.target.result;
+        preview.style.display = 'block';
+        text.textContent = input.files[0].name;
+        box.classList.add('has-file');
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  // Drag and drop
+  const box = document.getElementById('uploadBox');
+  box.addEventListener('dragover',  e => { e.preventDefault(); box.style.borderColor = 'var(--teal)'; });
+  box.addEventListener('dragleave', () => { box.style.borderColor = ''; });
+  box.addEventListener('drop', e => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const input = document.getElementById('imageInput');
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      previewImage(input);
+    }
+  });
+
+  // Loading state on submit
+  document.getElementById('reportForm').addEventListener('submit', () => {
+    const btn = document.getElementById('submitBtn');
+    btn.innerHTML = '<i class="ti ti-loader ti-spin"></i> AI is analysing your photo...';
+    btn.disabled  = true;
+  });
+</script>
+{% endblock %}

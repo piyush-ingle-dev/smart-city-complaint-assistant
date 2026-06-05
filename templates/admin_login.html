@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login — Smart City Complaint Assistant</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
+</head>
+<body style="background:var(--bg); min-height:100vh; display:flex; align-items:center; justify-content:center;">
+
+  <div style="width:100%; max-width:420px; padding:24px;">
+
+    <!-- Logo -->
+    <div style="text-align:center; margin-bottom:32px;">
+      <div style="width:56px; height:56px; border-radius:14px; background:var(--teal); display:flex; align-items:center; justify-content:center; margin:0 auto 14px; font-size:26px; color:white;">
+        <i class="ti ti-shield-lock"></i>
+      </div>
+      <div style="font-size:20px; font-weight:700; color:var(--text-primary);">Admin Panel</div>
+      <div style="font-size:13px; color:var(--text-muted); margin-top:4px;">Smart City Complaint Assistant</div>
+    </div>
+
+    <!-- Login Card -->
+    <div class="card">
+      <div style="font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:20px; display:flex; align-items:center; gap:8px;">
+        <i class="ti ti-lock" style="color:var(--teal);"></i> Sign in to continue
+      </div>
+
+      {% if error %}
+      <div class="form-error mb-16">
+        <i class="ti ti-alert-circle"></i> {{ error }}
+      </div>
+      {% endif %}
+
+      <form method="POST">
+        <div class="form-group">
+          <label class="form-label" for="username">Username</label>
+          <input type="text" name="username" id="username" class="form-input"
+                 placeholder="Enter admin username" autofocus />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input type="password" name="password" id="password" class="form-input"
+                 placeholder="Enter password" />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:11px;">
+          <i class="ti ti-login"></i> Sign In
+        </button>
+      </form>
+
+    </div>
+
+    <div style="text-align:center; margin-top:20px;">
+      <a href="{{ url_for('index') }}" style="font-size:13px; color:var(--text-muted);">
+        <i class="ti ti-arrow-left"></i> Back to main site
+      </a>
+    </div>
+
+  </div>
+</body>
+</html>
