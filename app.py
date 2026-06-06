@@ -11,26 +11,26 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, s
 from openai import OpenAI
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
-
+ 
 load_dotenv()
-
+ 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
 app.secret_key = "smartcity_secret_2024_xk9"
-
+ 
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "smartcity123"
-
+ 
 # Email config — uses Gmail SMTP
 MAIL_SENDER_EMAIL    = os.getenv("MAIL_EMAIL", "")
 MAIL_SENDER_PASSWORD = os.getenv("MAIL_PASSWORD", "")
-
+ 
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
     base_url="https://openrouter.ai/api/v1"
 )
-
+ 
 ISSUE_CATEGORIES = [
     "Pothole / Road Damage",
     "Garbage / Waste Overflow",
@@ -40,14 +40,14 @@ ISSUE_CATEGORIES = [
     "Encroachment",
     "Other"
 ]
-
-# ── Database ─────────────────────────────────────────────────────────────────── 
-
+ 
+# ── Database ───────────────────────────────────────────────────────────────────
+ 
 def get_db():
     db = sqlite3.connect('complaints.db')
     db.row_factory = sqlite3.Row
     return db
-
+ 
 def init_db():
     db = get_db()
     # Users table
@@ -103,9 +103,9 @@ def init_db():
         pass
     db.commit()
     db.close()
-
+ 
 # ── Auth helpers ───────────────────────────────────────────────────────────────
-
+ 
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -113,7 +113,7 @@ def login_required(f):
             return redirect(url_for("signin"))
         return f(*args, **kwargs)
     return decorated
-
+ 
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -121,9 +121,9 @@ def admin_required(f):
             return redirect(url_for("admin_login"))
         return f(*args, **kwargs)
     return decorated
-
+ 
 # ── AI ─────────────────────────────────────────────────────────────────────────
-
+ 
 def classify_image(image_path, location):
     try:
         with open(image_path, "rb") as f:
@@ -132,14 +132,14 @@ def classify_image(image_path, location):
         media_type = "image/jpeg" if ext in ("jpg", "jpeg") else f"image/{ext}"
         prompt = f"""You are an AI assistant for a Smart City Complaint system in India.
 Analyze this image and identify any urban civic issue.
-
+ 
 Respond ONLY in this exact JSON format, nothing else:
 {{
   "category": "<one of: Pothole / Road Damage | Garbage / Waste Overflow | Waterlogging / Drainage | Broken Streetlight | Sewage / Open Drain | Encroachment | Other>",
   "severity": "<one of: High | Medium | Low>",
   "description": "<2-3 sentence clear complaint description a citizen would submit to their municipal corporation. Be specific about what you see.>"
 }}
-
+ 
 Location context: {location}
 If no civic issue is visible, use category "Other", severity "Low", and describe what you see."""
         response = client.chat.completions.create(
@@ -159,8 +159,8 @@ If no civic issue is visible, use category "Other", severity "Low", and describe
     except:
         return {"category": "Other", "severity": "Medium",
                 "description": f"Civic issue reported at {location}. Manual review required."}
-
-
+ 
+ 
 def chat_with_ai(user_message, complaint_stats):
     try:
         stats_context = f"""
@@ -185,8 +185,8 @@ Be conversational, helpful, and accurate."""},
         return response.choices[0].message.content.strip()
     except:
         return "Sorry, I am unable to respond right now. Please try again."
-
-
+ 
+ 
 def generate_status_message(complaint, new_status, citizen_name, rejection_reason=None):
     """AI generates a personalized status update message for the citizen."""
     try:
@@ -204,7 +204,7 @@ Complaint: {complaint['category']} at {complaint['location']}, ID: #{complaint['
 2-3 sentences. Be clear about reason. Encourage resubmit if issue persists. Message body only."""
         else:
             return None
-
+ 
         response = client.chat.completions.create(
             model="openai/gpt-4o",
             messages=[{"role": "user", "content": prompt}],
@@ -218,8 +218,8 @@ Complaint: {complaint['category']} at {complaint['location']}, ID: #{complaint['
             "Rejected":    f"Dear {citizen_name}, your complaint #{complaint['id']} could not be processed. Reason: {rejection_reason}. Please resubmit with clearer details if the issue persists."
         }
         return fallbacks.get(new_status, "")
-
-
+ 
+ 
 def send_email_notification(to_email, citizen_name, complaint_id, status, ai_message):
     """Send HTML email to citizen. Fails silently if not configured."""
     if not MAIL_SENDER_EMAIL or not MAIL_SENDER_PASSWORD:
@@ -263,12 +263,12 @@ def send_email_notification(to_email, citizen_name, complaint_id, status, ai_mes
             server.sendmail(MAIL_SENDER_EMAIL, to_email, msg.as_string())
     except:
         pass  # Fail silently — app works even without email
-
-
-
-
+ 
+ 
+ 
+ 
 # ── Citizen Auth Routes ────────────────────────────────────────────────────────
-
+ 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if session.get("user_id"):
@@ -303,8 +303,8 @@ def signup():
                 session["user_email"]= user["email"]
                 return redirect(url_for("index"))
     return render_template("signup.html", error=error)
-
-
+ 
+ 
 @app.route("/signin", methods=["GET", "POST"])
 def signin():
     if session.get("user_id"):
@@ -324,17 +324,17 @@ def signin():
             session["user_email"] = user["email"]
             return redirect(url_for("index"))
     return render_template("signin.html", error=error)
-
-
+ 
+ 
 @app.route("/signout")
 def signout():
     session.pop("user_id", None)
     session.pop("user_name", None)
     session.pop("user_email", None)
     return redirect(url_for("index"))
-
+ 
 # ── Main Routes ────────────────────────────────────────────────────────────────
-
+ 
 @app.route("/")
 def index():
     db = get_db()
@@ -342,8 +342,8 @@ def index():
     stats  = get_stats(db)
     db.close()
     return render_template("index.html", recent=recent, stats=stats)
-
-
+ 
+ 
 @app.route("/report", methods=["GET", "POST"])
 @login_required
 def report():
@@ -372,8 +372,8 @@ def report():
         db.close()
         return redirect(url_for("complaint_detail", complaint_id=complaint_id, submitted="1"))
     return render_template("report.html")
-
-
+ 
+ 
 @app.route("/complaint/<int:complaint_id>")
 def complaint_detail(complaint_id):
     db = get_db()
@@ -386,8 +386,8 @@ def complaint_detail(complaint_id):
     is_owner = session.get("user_id") and session["user_id"] == complaint["user_id"]
     submitted = request.args.get("submitted", "0") == "1"
     return render_template("detail.html", complaint=complaint, submitted=submitted, is_owner=is_owner)
-
-
+ 
+ 
 @app.route("/track", methods=["GET", "POST"])
 def track():
     complaint = None
@@ -406,8 +406,8 @@ def track():
             else:
                 is_owner = session.get("user_id") and session["user_id"] == complaint["user_id"]
     return render_template("track.html", complaint=complaint, error=error, is_owner=is_owner)
-
-
+ 
+ 
 @app.route("/my-complaints")
 @login_required
 def my_complaints():
@@ -418,8 +418,8 @@ def my_complaints():
     ).fetchall()
     db.close()
     return render_template("my_complaints.html", complaints=complaints)
-
-
+ 
+ 
 @app.route("/complaints")
 def complaints():
     db = get_db()
@@ -443,8 +443,8 @@ def complaints():
                            selected_category=category_filter,
                            selected_severity=severity_filter,
                            selected_status=status_filter)
-
-
+ 
+ 
 @app.route("/dashboard")
 def dashboard():
     db = get_db()
@@ -456,8 +456,8 @@ def dashboard():
     recent   = db.execute("SELECT * FROM complaints ORDER BY created_at DESC LIMIT 8").fetchall()
     db.close()
     return render_template("dashboard.html", stats=stats, cat_data=cat_data, weekly=weekly, recent=recent)
-
-
+ 
+ 
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
@@ -468,7 +468,7 @@ def chat():
     stats = get_stats(db)
     db.close()
     return jsonify({"reply": chat_with_ai(user_message, stats)})
-
+ 
 @app.route("/update_status/<int:complaint_id>", methods=["POST"])
 def update_status(complaint_id):
     new_status = request.form.get("status")
@@ -478,10 +478,10 @@ def update_status(complaint_id):
         db.commit()
         db.close()
     return redirect(request.referrer or url_for("complaints"))
-
-
+ 
+ 
 # ── Admin Routes ───────────────────────────────────────────────────────────────
-
+ 
 @app.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
     if session.get("admin_logged_in"):
@@ -494,14 +494,14 @@ def admin_login():
             return redirect(url_for("admin_dashboard"))
         error = "Invalid username or password."
     return render_template("admin_login.html", error=error)
-
-
+ 
+ 
 @app.route("/admin/logout")
 def admin_logout():
     session.pop("admin_logged_in", None)
     return redirect(url_for("admin_login"))
-
-
+ 
+ 
 @app.route("/admin")
 @admin_required
 def admin_dashboard():
@@ -518,29 +518,29 @@ def admin_dashboard():
     """).fetchall()
     db.close()
     return render_template("admin_dashboard.html", stats=stats, complaints=complaints)
-
-
+ 
+ 
 @app.route("/admin/update/<int:complaint_id>", methods=["POST"])
 @admin_required
 def admin_update_status(complaint_id):
     new_status       = request.form.get("status")
     rejection_reason = request.form.get("rejection_reason", "").strip()
     valid_statuses   = ("Pending", "In Progress", "Resolved", "Rejected")
-
+ 
     if new_status not in valid_statuses:
         return redirect(url_for("admin_dashboard"))
-
+ 
     db = get_db()
     # Get complaint + citizen info
     complaint = db.execute("""
         SELECT c.*, u.name as citizen_name, u.email as citizen_email
         FROM complaints c LEFT JOIN users u ON c.user_id = u.id
         WHERE c.id=?""", (complaint_id,)).fetchone()
-
+ 
     if not complaint:
         db.close()
         return redirect(url_for("admin_dashboard"))
-
+ 
     # Only generate AI message for meaningful status changes
     ai_msg = None
     if new_status in ("In Progress", "Resolved", "Rejected"):
@@ -549,7 +549,7 @@ def admin_update_status(complaint_id):
             dict(complaint), new_status, citizen_name,
             rejection_reason if new_status == "Rejected" else None
         )
-
+ 
     # Update complaint in DB
     if new_status == "Rejected":
         db.execute("UPDATE complaints SET status=?, rejection_reason=?, ai_message=? WHERE id=?",
@@ -557,16 +557,16 @@ def admin_update_status(complaint_id):
     else:
         db.execute("UPDATE complaints SET status=?, rejection_reason=NULL, ai_message=? WHERE id=?",
                    (new_status, ai_msg, complaint_id))
-
+ 
     # Save notification for citizen
     if ai_msg and complaint["user_id"]:
         db.execute("""INSERT INTO notifications (user_id, complaint_id, message, status, is_read, created_at)
                       VALUES (?, ?, ?, ?, 0, ?)""",
                    (complaint["user_id"], complaint_id, ai_msg, new_status,
                     datetime.now().strftime("%Y-%m-%d %H:%M")))
-
+ 
     db.commit()
-
+ 
     # Send email in background (non-blocking)
     if ai_msg and complaint["citizen_email"]:
         send_email_notification(
@@ -574,11 +574,11 @@ def admin_update_status(complaint_id):
             complaint["citizen_name"] or "Citizen",
             complaint_id, new_status, ai_msg
         )
-
+ 
     db.close()
     return redirect(url_for("admin_dashboard"))
-
-
+ 
+ 
 @app.route("/notifications")
 @login_required
 def notifications():
@@ -596,8 +596,8 @@ def notifications():
     unread = 0
     db.close()
     return render_template("notifications.html", notifications=notifs)
-
-
+ 
+ 
 @app.route("/admin/complaint/<int:complaint_id>")
 @admin_required
 def admin_complaint_detail(complaint_id):
@@ -610,9 +610,9 @@ def admin_complaint_detail(complaint_id):
     if not complaint:
         return redirect(url_for("admin_dashboard"))
     return render_template("admin_detail.html", complaint=complaint)
-
+ 
 # ── Context processor — injects unread count into every template ───────────────
-
+ 
 @app.context_processor
 def inject_unread_count():
     if session.get("user_id"):
@@ -624,10 +624,10 @@ def inject_unread_count():
         db.close()
         return {"unread_count": count}
     return {"unread_count": 0}
-
-
+ 
+ 
 # ── Helpers ────────────────────────────────────────────────────────────────────
-
+ 
 def get_stats(db):
     total       = db.execute("SELECT COUNT(*) FROM complaints").fetchone()[0]
     pending     = db.execute("SELECT COUNT(*) FROM complaints WHERE status='Pending'").fetchone()[0]
@@ -638,9 +638,10 @@ def get_stats(db):
     return {"total": total, "pending": pending, "in_progress": in_progress,
             "resolved": resolved, "rejected": rejected,
             "top_category": top_row[0] if top_row else "N/A"}
-
+ 
+# Initialize DB and uploads folder on startup (works for both gunicorn and python app.py)
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+init_db()
+ 
 if __name__ == "__main__":
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    init_db()
     app.run(debug=True)
-    
