@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Complaint #{{ complaint.id }} — Smart City Complaint Assistant{% endblock %}
-
+ 
 {% block content %}
 <div class="page-body">
   <div class="container">
-
+ 
     <div class="page-header">
       <div>
         <a href="{{ url_for('complaints') }}" style="font-size:13px;color:var(--text-muted);">
@@ -17,7 +17,7 @@
         <span class="badge badge-{{ complaint.status.lower().replace(' ','') }}">{{ complaint.status }}</span>
       </div>
     </div>
-
+ 
     <!-- Success Banner — shown right after submission -->
     {% if submitted %}
     <div style="background:#E1F5EE;border:1px solid #9FE1CB;border-radius:var(--radius-lg);padding:16px 22px;margin-bottom:24px;display:flex;align-items:flex-start;gap:14px;">
@@ -32,7 +32,7 @@
       </div>
     </div>
     {% endif %}
-
+ 
     <!-- AI Result Banner -->
     <div style="background:var(--teal-light);border:1px solid var(--teal-mid);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:24px;display:flex;gap:12px;align-items:flex-start;">
       <i class="ti ti-robot" style="color:var(--teal-dark);font-size:22px;margin-top:2px;flex-shrink:0;"></i>
@@ -41,7 +41,7 @@
         <div style="font-size:14px;color:var(--teal-dark);line-height:1.6;">{{ complaint.description }}</div>
       </div>
     </div>
-
+ 
     <!-- Rejection reason (if rejected) -->
     {% if complaint.status == 'Rejected' and complaint.rejection_reason %}
     <div style="background:var(--red-light);border:1px solid #F7C1C1;border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:24px;display:flex;gap:12px;align-items:flex-start;">
@@ -52,9 +52,9 @@
       </div>
     </div>
     {% endif %}
-
+ 
     <div class="detail-grid">
-
+ 
       <!-- Image -->
       <div>
         <div class="detail-image">
@@ -66,25 +66,8 @@
             </div>
           {% endif %}
         </div>
-
-        <!-- Update Status — only visible to complaint owner -->
-        {% if is_owner %}
-        <div class="card mt-16">
-          <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:12px;">Update Status</div>
-          <form method="POST" action="{{ url_for('update_status', complaint_id=complaint.id) }}">
-            <div class="flex gap-8 align-center">
-              <select name="status" class="form-select" style="flex:1;">
-                {% for s in ['Pending','In Progress','Resolved'] %}
-                  <option value="{{ s }}" {% if complaint.status==s %}selected{% endif %}>{{ s }}</option>
-                {% endfor %}
-              </select>
-              <button type="submit" class="btn btn-primary btn-sm">Update</button>
-            </div>
-          </form>
-        </div>
-        {% endif %}
       </div>
-
+ 
       <!-- Details -->
       <div>
         <div class="card">
@@ -105,12 +88,12 @@
           <div class="info-row"><span class="info-key">Reported at</span><span class="info-val">{{ complaint.created_at }}</span></div>
           <div class="info-row" style="border:none;"><span class="info-key">Complaint ID</span><span class="info-val">#{{ complaint.id }}</span></div>
         </div>
-
+ 
         <div class="card mt-16">
           <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">AI-Generated Description</div>
           <p style="font-size:14px;color:var(--text-primary);line-height:1.7;">{{ complaint.description }}</p>
         </div>
-
+ 
         <div class="card mt-16" style="background:var(--bg);">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
             <i class="ti ti-building-community" style="color:var(--teal);font-size:18px;"></i>
@@ -119,7 +102,7 @@
           <p style="font-size:12px;color:var(--text-secondary);line-height:1.6;">This complaint contributes to tracking urban civic issues in line with UN Sustainable Development Goal 11 — making cities inclusive, safe, resilient, and sustainable.</p>
         </div>
       </div>
-
+ 
     </div>
   </div>
 </div>
